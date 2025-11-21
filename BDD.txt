@@ -1,0 +1,115 @@
+BDD
+PK clé primaire : ID du record / de l'enregistrement/ de la ligne
+FK clé secondaire : qui établit une relation avec clé primaire d'une autre table / utilisée pour connecter des données entre tables différentes, assurant la structure et la cohérence relationnelle des bases de données.
+
+MPD
+https://www.solidpepper.com/blog/modele-physique-de-donnees-mpd-definition-enjeux-exemple
+
+
+
+
+-----------------------------------------------
+**BDD**
+**pour visualiser mes BDD sur mon mac :::**
+**>** click sur BDD
+> click sur Exporter (dans nav haut, env. au mil) > OK
+chez moi : > click sur Importer
+-----------------------------------------------
+
+
+articles long : text
+remplissage : formulaire varchar(50->1000)
+
+question à choix unique (radio) ou multiple (checkbox)
+
+
+---------------------------------------------------
+https://laconsole.dev/formations/symfony/bdd-entites-relations
+---------------------------------------------------
+TABLES DE JOINTURE
+
+Cas des relations simples (1–N)
+Si tu as une relation un-à-plusieurs, la jointure se traduit par une clé étrangère dans la table côté "N".
+
+Dans le MPD, tu représentes donc les tables principales et les clés étrangères qui matérialisent la relation. 👉 Pas besoin de créer une table de jointure séparée.
+
+🔹 Cas des relations complexes (N–N)
+Si tu as une relation many-to-many (N–N), alors oui, tu crées une table associative (souvent appelée "table de jointure").
+
+Cette table contient généralement :
+
+Les clés primaires des deux tables reliées (comme clés étrangères),
+
+Éventuellement des attributs supplémentaires propres à la relation (ex. date d’inscription, rôle, etc.).
+
+👉 Dans ce cas, la table de jointure est bien dessinée dans le MPD, car elle existe physiquement dans la base.
+
+✨ Exemple
+Conceptuel (MCD) : Étudiants ↔ Cours (relation "s’inscrire")
+
+Physique (MPD) :
+
+Table Etudiant
+
+Table Cours
+
+Table Inscription (table de jointure avec id_etudiant, id_cours, et éventuellement date_inscription)
+
+✅ Donc, pour résumer :
+
+1–N → pas de table de jointure, juste une clé étrangère.
+
+N–N → oui, une table de jointure est créée et représentée dans le MPD.
+
+
+schéma comparatif pour bien visualiser la différence entre une relation 1–N et une relation N–N dans un passage du MCD (conceptuel) au MPD (physique) :
+
+🔹 Relation 1–N (exemple : Auteur ↔ Livre)
+MCD :
+
+Code
+Auteur (id_auteur, nom)
+Livre  (id_livre, titre)
+Relation : un Auteur écrit plusieurs Livres
+MPD :
+
+Code
+Table Auteur
+- id_auteur (PK)
+- nom
+
+Table Livre
+- id_livre (PK)
+- titre
+- id_auteur (FK vers Auteur)
+👉 Ici, pas de table de jointure : la clé étrangère id_auteur dans Livre suffit.
+
+🔹 Relation N–N (exemple : Étudiant ↔ Cours)
+MCD :
+
+Code
+Etudiant (id_etudiant, nom)
+Cours    (id_cours, libelle)
+Relation : un Étudiant suit plusieurs Cours, un Cours est suivi par plusieurs Étudiants
+MPD :
+
+Code
+Table Etudiant
+- id_etudiant (PK)
+- nom
+
+Table Cours
+- id_cours (PK)
+- libelle
+
+Table Inscription (table de jointure)
+- id_etudiant (FK vers Etudiant)
+- id_cours (FK vers Cours)
+- date_inscription (attribut de la relation)
+PK = (id_etudiant, id_cours)
+👉 Ici, la table de jointure Inscription est indispensable pour matérialiser la relation N–N.
+
+✨ Résumé visuel
+Type de relation	MCD	MPD
+1–N	Relation représentée par une clé étrangère	Pas de table de jointure
+N–N	Relation représentée par une association	Table de jointure créée

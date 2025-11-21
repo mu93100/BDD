@@ -1,0 +1,141 @@
+BDD ZEST ressources
+MENU:::
+10 categories : REPORTAGES PHOTO/local/infos intergas/infos producteurices/gazest/actu collectif/cr/alimentaire/climat
+
+2 liens : fondation/pigeon
+
+dans CR ::: 4 sous categories : AG,  reu_CA, j_communs, reu_referents
+
+Hiérarchie dans la même table categories (recommandée)
+Tu ajoutes une colonne parent_id dans categories pour gérer les sous-catégories.
+
+Table categories :
+
+id_category	nom		parent_id
+1	REPORTAGES PHOTO	NULL
+2	local			NULL
+3	infos intergas		NULL
+4	infos producteurices	NULL
+5	gazest			NULL
+6	actu collectif		NULL
+7	CR			NULL
+8	AG			7
+9	reu_CA			7
+10	j_communs		7
+11	reu_referents		7
+12	alimentaire		NULL
+13	climat			NULL
+👉 Avantage :
+
+Tu peux avoir autant de sous-niveaux que tu veux (scalable).
+
+Doctrine gère ça avec une relation auto-référencée (parent / children).
+
+Pas besoin de créer une table spécifique juste pour CR.
+
+symfonny ::::
+
+sql
+-- Récupérer toutes les sous-catégories de CR
+SELECT * FROM categories WHERE parent_id = 7;
+Et côté Doctrine :
+
+php
+$cr->getChildren(); // renvoie AG, reu_CA, j_communs, reu_referents
+
+-------------------------
+En base de données (MySQL Workbench)
+On part sur une seule table categories avec une colonne parent_id qui permet de gérer les sous-catégories :
+
+sql
+CREATE TABLE categories (
+    id_category INT AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL,
+    parent_id INT NULL,
+    CONSTRAINT fk_parent
+        FOREIGN KEY (parent_id) REFERENCES categories(id_category)
+        ON DELETE SET NULL
+);
+Exemple de données insérées :
+sql
+-- Catégories principales
+INSERT INTO categories (nom, parent_id) VALUES ('REPORTAGES PHOTO', NULL);
+INSERT INTO categories (nom, parent_id) VALUES ('local', NULL);
+INSERT INTO categories (nom, parent_id) VALUES ('infos intergas', NULL);
+INSERT INTO categories (nom, parent_id) VALUES ('infos producteurices', NULL);
+INSERT INTO categories (nom, parent_id) VALUES ('gazest', NULL);
+INSERT INTO categories (nom, parent_id) VALUES ('actu collectif', NULL);
+INSERT INTO categories (nom, parent_id) VALUES ('CR', NULL);
+INSERT INTO categories (nom, parent_id) VALUES ('alimentaire', NULL);
+INSERT INTO categories (nom, parent_id) VALUES ('climat', NULL);
+
+-- Sous-catégories de CR
+INSERT INTO categories (nom, parent_id) VALUES ('AG', 7);
+INSERT INTO categories (nom, parent_id) VALUES ('reu_CA', 7);
+INSERT INTO categories (nom, parent_id) VALUES ('j_communs', 7);
+INSERT INTO categories (nom, parent_id) VALUES ('reu_referents', 7);
+👉 Ici, parent_id = 7 signifie que ces sous-catégories dépendent de la catégorie CR.
+------------------------------------
+En Symfony / Doctrine
+Entité Category.php
+php
+#[ORM\Entity]
+class Category
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: 'integer')]
+    private ?int $id = null;
+
+    #[ORM\Column(length: 100)]
+    private string $nom;
+
+    #[ORM\ManyToOne(targetEntity: Category::class, inversedBy: 'children')]
+    #[ORM\JoinColumn(name: 'parent_id', referencedColumnName: 'id', onDelete: 'SET NULL')]
+    private ?Category $parent = null;
+
+    #[ORM\OneToMany(mappedBy: 'parent', targetEntity: Category::class)]
+    private Collection $children;
+
+    public function __construct()
+    {
+        $this->children = new ArrayCollection();
+    }
+
+    // --- Getters & setters ---
+    public function getId(): ?int { return $this->id; }
+    public function getNom(): string { return $this->nom; }
+    public function setNom(string $nom): self { $this->nom = $nom; return $this; }
+
+    public function getParent(): ?Category { return $this->parent; }
+    public function setParent(?Category $parent): self { $this->parent = $parent; return $this; }
+
+    public function getChildren(): Collection { return $this->children; }
+}
+🔍 Utilisation dans Symfony
+Récupérer toutes les sous-catégories de CR :
+
+php
+$cr = $categoryRepository->findOneBy(['nom' => 'CR']);
+$children = $cr->getChildren(); // AG, reu_CA, j_communs, reu_referents
+Récupérer la catégorie parente d’une sous-catégorie :
+
+php
+$ag = $categoryRepository->findOneBy(['nom' => 'AG']);
+$parent = $ag->getParent(); // renvoie CR
+En Twig :
+
+twig
+<h2>{{ cr.nom }}</h2>
+<ul>
+  {% for child in cr.children %}
+    <li>{{ child.nom }}</li>
+  {% endfor %}
+</ul>
+✅ Résumé :
+
+En BDD : une seule table categories avec parent_id pour gérer la hiérarchie.
+
+En Symfony : une entité Category avec une relation auto-référencée (parent / children).
+
+Tu peux naviguer facilement entre catégories et sous-catégories avec Doctrine.

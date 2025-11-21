@@ -1,0 +1,96 @@
+BDD ZEST
+users_groupes
+si is_referent
+
+Contexte : données conditionnelles selon le rôle
+Tu indiques que is_groupe_open et ville sont renseignés uniquement si l’utilisateur est référent (is_referent = true). Cela signifie que :
+
+Ces infos ne décrivent pas l’utilisateur, mais le groupe dont il est référent
+
+Elles sont liées au groupe, mais renseignées via le référent
+
+🧱 Modélisation recommandée
+Champ	Table cible	Justification
+is_groupe_open	groupes	C’est une propriété du groupe, même si elle est renseignée par le référent
+ville (du groupe)	groupes	Idem, elle décrit le groupe, pas l’utilisateur
+is_referent	users	Rôle individuel dans le groupe
+🧩 Comment gérer le fait que seul le référent renseigne ces infos ?
+Voici une approche propre :
+
+Table groupes contient les champs is_groupe_open, ville, etc.
+
+Table users contient is_referent et id_groupe
+
+Lors de la création ou modification d’un groupe :
+
+Seul le user référent peut modifier les champs du groupe
+
+Tu peux gérer ça côté formulaire ou logique métier (ex : Symfony form types ou contrôleur)
+
+🛠️ Exemple logique métier (Symfony)
+php
+if ($user->isReferent()) {
+    // autoriser modification du groupe
+    $form = $this->createForm(GroupeType::class, $groupe);
+}
+🧠 Bonus : validation côté base
+Tu peux ajouter une contrainte logique (non SQL) :
+
+Si is_referent = 1, alors user doit être capable de modifier les infos du groupe
+
+Sinon, ces champs ne sont pas accessibles
+
+---------------------------------------------
+requete doctrine pour obtenir la liste des membres d’un groupe
+
+Solution propre : relation bidirectionnelle Doctrine
+Dans tes entités Symfony :
+
+Dans User.php :
+php
+#[ORM\ManyToOne(targetEntity: Groupe::class, inversedBy: 'membres')]
+private ?Groupe $groupe = null;
+Dans Groupe.php :
+php
+#[ORM\OneToMany(mappedBy: 'groupe', targetEntity: User::class)]
+private Collection $membres;
+Tu pourras ensuite faire :
+
+php
+$groupe->getMembres(); // renvoie tous les users du groupe
+🔍 Exemple de requête Symfony
+php
+$users = $userRepository->findBy(['groupe' => $groupe]);
+Ou en Twig :
+
+twig
+{% for membre in groupe.membres %}
+    {{ membre.nom }} {{ membre.prenom }}
+{% endfor %}
+
+---------------------------------------------
+Pourquoi ne pas dupliquer nom du groupe dans users ?
+Raisons	Explication
+Redondance	Le nom du groupe est déjà stocké dans la table groupes
+Risque d’incohérence	Si le nom du groupe change, il faudrait le mettre à jour dans tous les users
+Relation déjà existante	users.id_groupe permet d’accéder au nom via une jointure
+Doctrine/Symfony le gère très bien	Tu peux accéder au nom du groupe via $user->getGroupe()->getNom()
+✅ Ce que tu fais à la place
+Tu gardes id_groupe dans users comme clé étrangère
+
+Tu fais une jointure ou une relation Doctrine pour accéder au nom :
+
+Exemple Doctrine :
+php
+$user->getGroupe()->getNom();
+Exemple SQL :
+sql
+SELECT u.nom, g.nom AS nom_du_groupe
+FROM users u
+JOIN groupes g ON u.id_groupe = g.id_groupe;
+🧠 Astuce Symfony/Twig
+Dans un template :
+
+twig
+{{ user.groupe.nom }}
+---------------------------------------------------
